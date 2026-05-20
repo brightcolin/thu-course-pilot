@@ -1,0 +1,16 @@
+[
+    {
+        "major": "建筑学",
+        "grade": "大一",
+        "semester": "下",
+        "course_id": "00000051",
+        "course_type": "必修"
+    },
+    {
+        "major": "计算机科学与技术",
+        "grade": "大一",
+        "semester": "上",
+        "course_id": "MATH101",
+        "course_type": "必修"
+    }
+]

@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>未小羊 · 智能选课排课系统</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f4f6fb; --white:#fff; --surface:#fff; --surface2:#f0f2f8;
+  --border:#e0e4ef; --border2:#cdd3e3;
+  --text:#1a1f36; --text2:#6b7394; --text3:#9ea4be;
+  --pri:#4f6ef7; --pri-l:#eef1fe; --pri-d:#3a56d4;
+  --acc:#22c997; --acc-l:#e8faf4;
+  --warn:#f5a623; --warn-l:#fef7ea;
+  --danger:#e54d4d; --danger-l:#fdeaea;
+  --purple:#8b5cf6; --purple-l:#f3f0ff;
+  --shadow:0 2px 12px rgba(0,0,0,.06);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.1);
+  --r:12px; --rs:8px; --rl:16px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans SC',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow:hidden}
+
+/* ── Login ── */
+#loginOverlay{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#e8ecf8,#f5f7fb 50%,#e8faf4);display:flex;align-items:center;justify-content:center}
+.login-card{background:var(--white);border-radius:var(--rl);box-shadow:var(--shadow-lg);padding:44px 40px;width:400px;text-align:center}
+.login-card .mascot{width:90px;height:90px;border-radius:50%;margin-bottom:14px;object-fit:cover;background:#fff;border:3px solid var(--pri-l)}
+.login-card h2{font-size:21px;font-weight:600;margin-bottom:4px}
+.login-card p{color:var(--text2);font-size:14px;margin-bottom:22px}
+.login-card input{width:100%;padding:11px 15px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:14px;font-family:inherit;outline:none;margin-bottom:10px;transition:border .2s}
+.login-card input:focus{border-color:var(--pri)}
+.login-card .btn-login{width:100%;padding:12px;background:var(--pri);color:#fff;border:none;border-radius:var(--rs);font-size:15px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .2s}
+.login-card .btn-login:hover{background:var(--pri-d);transform:translateY(-1px)}
+
+/* ── Header ── */
+.header{height:54px;background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 22px;box-shadow:0 1px 3px rgba(0,0,0,.03)}
+.header-left{display:flex;align-items:center;gap:9px}
+.header-left .mascot{width:30px;height:30px;border-radius:50%;object-fit:cover;background:#fff}
+.header-left h1{font-size:16px;font-weight:600}
+.header-left h1 span{color:var(--pri)}
+.header-right{display:flex;align-items:center;gap:10px}
+.header-user{font-size:13px;color:var(--text2)}
+.btn{padding:7px 15px;border:none;border-radius:var(--rs);font-size:13px;font-family:inherit;cursor:pointer;transition:all .15s;font-weight:500}
+.btn-sm{padding:5px 11px;font-size:12px}
+.btn-primary{background:var(--pri);color:#fff}
+.btn-primary:hover{background:var(--pri-d)}
+.btn-ghost{background:transparent;color:var(--text2)}
+.btn-ghost:hover{background:var(--surface2);color:var(--text)}
+
+/* ── Main Layout ── */
+.main{display:flex;height:calc(100vh - 54px)}
+.left-panel{flex:1;display:flex;flex-direction:column;border-right:1px solid var(--border);min-width:0}
+
+/* Chat */
+.chat-area{flex:1;overflow-y:auto;padding:18px 22px;display:flex;flex-direction:column;gap:10px;background:var(--white)}
+.msg{max-width:80%;padding:11px 15px;border-radius:var(--r);font-size:14px;line-height:1.7;word-break:break-word;animation:fadeIn .25s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{align-self:flex-end;background:var(--pri);color:#fff;border-bottom-right-radius:4px}
+.msg.assistant{align-self:flex-start;background:var(--surface2);border:1px solid var(--border);border-bottom-left-radius:4px}
+.msg .avatar{width:22px;height:22px;border-radius:50%;vertical-align:middle;margin-right:5px;object-fit:cover;background:#fff}
+.msg.system{align-self:center;background:var(--pri-l);color:var(--pri);font-size:13px;padding:7px 15px;border-radius:20px}
+.typing-indicator{align-self:flex-start;padding:11px 18px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);display:flex;gap:4px;align-items:center}
+.dot{width:6px;height:6px;background:var(--text3);border-radius:50%;animation:bounce 1.2s infinite}
+.dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
+
+/* Constraints */
+.constraints-panel{border-top:1px solid var(--border);background:var(--white);padding:10px 18px;max-height:180px;overflow-y:auto}
+.constraints-panel.collapsed{max-height:36px;overflow:hidden}
+.constraints-header{display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:6px}
+.constraints-header h4{font-size:13px;color:var(--text2);font-weight:500}
+.constraint-section{margin-bottom:6px}
+.constraint-section .label{font-size:11px;color:var(--text3);margin-bottom:3px;text-transform:uppercase;letter-spacing:.4px}
+.constraint-tags{display:flex;flex-wrap:wrap;gap:5px}
+.c-tag{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:14px;font-size:12px}
+.c-tag.course{background:var(--pri-l);color:var(--pri)}
+.c-tag.forbidden{background:var(--danger-l);color:var(--danger)}
+.c-tag.pref{background:var(--purple-l);color:var(--purple)}
+.c-tag .remove{width:14px;height:14px;border-radius:50%;border:none;background:rgba(0,0,0,.07);color:inherit;font-size:9px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.c-tag .remove:hover{background:rgba(0,0,0,.15)}
+
+/* Input */
+.chat-input-area{padding:12px 18px;background:var(--white);border-top:1px solid var(--border);display:flex;gap:7px;align-items:center}
+.chat-input-area input{flex:1;padding:10px 15px;background:var(--surface2);border:1.5px solid transparent;border-radius:22px;font-size:14px;font-family:inherit;outline:none;transition:all .2s}
+.chat-input-area input:focus{border-color:var(--pri);background:var(--white)}
+.chat-input-area .btn{border-radius:22px;padding:9px 18px}
+.btn-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--surface2);border:none;cursor:pointer;font-size:15px;transition:all .15s;color:var(--text2)}
+.btn-icon:hover{background:var(--pri-l);color:var(--pri)}
+
+/* ── Right Panel ── */
+.right-panel{width:500px;min-width:380px;display:flex;flex-direction:column;background:var(--white)}
+.right-header{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.right-header h3{font-size:15px;font-weight:600}
+.schedule-tags{display:flex;gap:5px}
+.s-tag{padding:2px 9px;border-radius:10px;font-size:11px;font-weight:500;background:var(--acc-l);color:var(--acc)}
+.s-btn{padding:2px 9px;border-radius:10px;font-size:11px;font-weight:600;background:var(--surface2);color:var(--text2);cursor:pointer;user-select:none;border:1px solid var(--border)}
+.s-btn.active{background:var(--pri-l);color:var(--pri);border-color:var(--pri-l)}
+.stats-bar{display:flex;border-bottom:1px solid var(--border)}
+.stat-item{flex:1;padding:9px 10px;text-align:center;border-right:1px solid var(--border)}
+.stat-item:last-child{border-right:none}
+.stat-item .val{font-size:19px;font-weight:700;color:var(--pri)}
+.stat-item .lbl{font-size:11px;color:var(--text3);margin-top:1px}
+.timetable-area{flex:1;overflow:auto;padding:10px}
+
+.timetable{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+.timetable th{padding:7px 3px;background:var(--surface2);color:var(--text2);font-weight:500;font-size:12px;border:1px solid var(--border);position:sticky;top:0;z-index:2}
+.timetable td{padding:2px;border:1px solid var(--border);height:64px;vertical-align:top;transition:background .15s}
+.timetable td:hover{background:var(--surface2)}
+.timetable .period-label{text-align:center;color:var(--text3);font-size:11px;width:30px;background:var(--surface2);font-weight:500}
+.course-cell{border-radius:5px;padding:2px 4px;font-size:11px;line-height:1.3;height:100%;cursor:pointer;transition:all .2s;position:relative}
+.course-cell:hover{transform:scale(1.03);box-shadow:0 2px 8px rgba(0,0,0,.1);z-index:1}
+.course-cell .cname{font-weight:600}
+.course-cell .cinfo{font-size:10px;opacity:.8}
+.cc-0{background:#eef1fe;color:#3a56d4;border-left:3px solid #4f6ef7}
+.cc-1{background:#e8faf4;color:#15875e;border-left:3px solid #22c997}
+.cc-2{background:#fef7ea;color:#b37c14;border-left:3px solid #f5a623}
+.cc-3{background:#f3f0ff;color:#6d3fc0;border-left:3px solid #8b5cf6}
+.cc-4{background:#fdeaea;color:#b93535;border-left:3px solid #e54d4d}
+.cc-5{background:#e8f5fe;color:#1a6fa3;border-left:3px solid #38a3e8}
+.cc-6{background:#fff0f6;color:#a3365a;border-left:3px solid #e84393}
+.cc-7{background:#f0fdf4;color:#36713b;border-left:3px solid #4caf50}
+.conflict-box{margin:6px 10px;padding:9px 12px;border-radius:var(--rs);background:var(--warn-l);border:1px solid #f0d68a;font-size:13px;color:#8a6d0b}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text3);gap:6px}
+.empty-state .icon{font-size:44px;opacity:.4}
+
+/* ── Popup ── */
+.overlay{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.28);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center}
+.overlay.show{display:flex}
+.popup{background:var(--white);border-radius:var(--rl);box-shadow:var(--shadow-lg);width:580px;max-height:78vh;display:flex;flex-direction:column;animation:popIn .2s ease}
+@keyframes popIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+.popup-header{padding:16px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.popup-header h3{font-size:16px;font-weight:600}
+.popup-close{width:30px;height:30px;border:none;background:var(--surface2);border-radius:50%;cursor:pointer;font-size:15px;color:var(--text2);display:flex;align-items:center;justify-content:center;transition:all .15s}
+.popup-close:hover{background:var(--danger-l);color:var(--danger)}
+.popup-body{flex:1;overflow-y:auto;padding:14px 22px}
+.popup-search{width:100%;padding:9px 13px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:14px;font-family:inherit;outline:none;margin-bottom:10px}
+.popup-search:focus{border-color:var(--pri)}
+.course-item{padding:10px 12px;border:1px solid var(--border);border-radius:var(--rs);margin-bottom:7px;cursor:pointer;transition:all .15s;display:flex;justify-content:space-between;align-items:center}
+.course-item:hover{border-color:var(--pri);background:var(--pri-l)}
+.ci-name{font-weight:500;font-size:14px}
+.ci-meta{font-size:12px;color:var(--text2);margin-top:2px}
+
+/* Cell Menu */
+.cell-menu{position:fixed;z-index:90;background:var(--white);border-radius:var(--rs);box-shadow:var(--shadow-lg);padding:5px 0;min-width:155px;display:none}
+.cell-menu.show{display:block}
+.cell-menu-item{padding:7px 14px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:7px;transition:background .1s}
+.cell-menu-item:hover{background:var(--pri-l)}
+
+@media(max-width:960px){.right-panel{display:none;position:fixed;right:0;top:54px;bottom:0;z-index:50;width:100%}.right-panel.mobile-show{display:flex}}
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div id="loginOverlay">
+  <div class="login-card">
+    <img class="mascot" src="/static/mascot.png" alt="未小羊">
+    <h2>欢迎来到选课系统</h2>
+    <p>我是未小羊 🐏，你的专属选课助手</p>
+    <input id="loginName" placeholder="请输入你的名字" onkeydown="if(event.key==='Enter')doLogin()">
+    <input id="loginGrade" placeholder="年级（可选，如：大一）">
+    <input id="loginDept" placeholder="院系（可选，如：未央书院）">
+    <button class="btn-login" onclick="doLogin()">开始选课 🚀</button>
+  </div>
+</div>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    <img class="mascot" src="/static/mascot.png" alt="🐏">
+    <h1><span>未小羊</span> · 智能选课系统</h1>
+  </div>
+  <div class="header-right">
+    <span class="header-user" id="headerUser"></span>
+    <button class="btn btn-ghost btn-sm" onclick="openPopup()" title="浏览课程">📋 选课</button>
+    <button class="btn btn-ghost btn-sm" onclick="resetSession()">🔄 重置</button>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+  <div class="left-panel">
+    <div class="chat-area" id="chatArea">
+      <div class="msg system">👋 请先登录，即可开始选课对话</div>
+    </div>
+    <div class="constraints-panel" id="constraintsPanel">
+      <div class="constraints-header" onclick="document.getElementById('constraintsPanel').classList.toggle('collapsed')">
+        <h4>📌 已识别的约束条件</h4><span style="font-size:11px;color:var(--text3)">▼</span>
+      </div>
+      <div id="constraintContent">
+        <div class="constraint-section"><div class="label">必选课程</div><div class="constraint-tags" id="mustHaveTags"><span style="font-size:12px;color:var(--text3)">暂无</span></div></div>
+        <div class="constraint-section"><div class="label">禁用时间</div><div class="constraint-tags" id="forbiddenTags"><span style="font-size:12px;color:var(--text3)">暂无</span></div></div>
+        <div class="constraint-section"><div class="label">偏好</div><div class="constraint-tags" id="prefTags"><span style="font-size:12px;color:var(--text3)">暂无</span></div></div>
+      </div>
+    </div>
+    <div class="chat-input-area">
+      <button class="btn-icon" onclick="openPopup()" title="选课">📋</button>
+      <input type="text" id="chatInput" placeholder="输入选课需求，如：我要选建筑与城市美学，不想上早八" onkeydown="if(event.key==='Enter')sendMsg()">
+      <button class="btn btn-primary" onclick="sendMsg()">发送</button>
+    </div>
+  </div>
+  <div class="right-panel" id="rightPanel">
+    <div class="right-header"><h3>📅 课表方案</h3><div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px"><div class="schedule-tags" id="solutionSwitcher"></div><div class="schedule-tags" id="scheduleTags"></div></div></div>
+    <div class="stats-bar" id="statsBar" style="display:none">
+      <div class="stat-item"><div class="val" id="statCredits">0</div><div class="lbl">总学分</div></div>
+      <div class="stat-item"><div class="val" id="statDays">0</div><div class="lbl">上课天数</div></div>
+      <div class="stat-item"><div class="val" id="statMorning">0</div><div class="lbl">早课数</div></div>
+      <div class="stat-item"><div class="val" id="statWed">-</div><div class="lbl">周三下午</div></div>
+    </div>
+    <div id="conflictArea"></div>
+    <div class="timetable-area" id="timetableArea">
+      <div class="empty-state"><div class="icon">📅</div><p>在左侧对话中描述选课需求</p><p style="font-size:12px">课表将自动在这里生成</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- Course Popup (#11) -->
+<div class="overlay" id="courseOverlay" onclick="if(event.target===this)closePopup()">
+  <div class="popup">
+    <div class="popup-header"><h3>📋 浏览课程</h3><button class="popup-close" onclick="closePopup()">✕</button></div>
+    <div class="popup-body">
+      <input class="popup-search" id="popupSearch" placeholder="搜索课程名 / 教师名 / 课程号..." oninput="debouncedPopupSearch()">
+      <div id="popupResults"><p style="text-align:center;color:var(--text3);padding:20px">输入关键词搜索课程</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- Cell Menu -->
+<div class="cell-menu" id="cellMenu">
+  <div class="cell-menu-item" onclick="cellAction('ref')"><span>💬</span> 引用至对话</div>
+  <div class="cell-menu-item" onclick="cellAction('change')"><span>🔄</span> 更换班级</div>
+  <div class="cell-menu-item" onclick="cellAction('remove')"><span>❌</span> 移除此课</div>
+</div>
+
+<script>
+let sessionId=null, username='', currentSchedule=null, currentConstraints={must_have:[],forbidden_slots:[],preferences:{}};
+let currentSolutions=null, currentSolutionIndex=0;
+let courseColorMap={}, colorIdx=0, cellMenuCourse=null, popupTimer=null;
+
+// ── Login ──
+function doLogin(){
+  const name=document.getElementById('loginName').value.trim();
+  if(!name){document.getElementById('loginName').focus();return}
+  username=name;
+  document.getElementById('loginOverlay').style.display='none';
+  document.getElementById('headerUser').textContent='👤 '+username;
+  document.getElementById('chatArea').innerHTML='';
+  sendToAgent('你好',{username:name,grade:document.getElementById('loginGrade').value.trim(),department:document.getElementById('loginDept').value.trim()});
+}
+
+// ── Chat ──
+function addMsg(role,text){
+  const area=document.getElementById('chatArea'), el=document.createElement('div');
+  el.className='msg '+role;
+  if(role==='assistant'){
+    // #6: render simple formatting (no raw markdown)
+    el.innerHTML='<img class="avatar" src="/static/mascot.png">'+formatReply(text);
+  } else { el.textContent=text; }
+  area.appendChild(el); area.scrollTop=area.scrollHeight;
+}
+function addSystemMsg(t){
+  const area=document.getElementById('chatArea'),el=document.createElement('div');
+  el.className='msg system';el.textContent=t;area.appendChild(el);area.scrollTop=area.scrollHeight;
+}
+function showTyping(){
+  const area=document.getElementById('chatArea'),el=document.createElement('div');
+  el.className='typing-indicator';el.id='typingIndicator';
+  el.innerHTML='<img class="avatar" src="/static/mascot.png" style="width:20px;height:20px;margin-right:3px;background:#fff"><div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+  area.appendChild(el);area.scrollTop=area.scrollHeight;
+}
+function hideTyping(){const el=document.getElementById('typingIndicator');if(el)el.remove()}
+
+// #6: Simple markdown-like formatting (bold, newlines) without raw markers
+function formatReply(text){
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/\n/g,'<br>');
+}
+
+async function sendMsg(){
+  const input=document.getElementById('chatInput'),msg=input.value.trim();
+  if(!msg)return; input.value=''; addMsg('user',msg); await sendToAgent(msg);
+}
+
+async function sendToAgent(message,userInfo=null){
+  showTyping();
+  try{
+    const body={message,session_id:sessionId};
+    if(userInfo)body.user_info=userInfo;
+    const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data=await res.json();
+    sessionId=data.session_id; hideTyping();
+    if(data.reply)addMsg('assistant',data.reply);
+    if(data.constraints){currentConstraints=data.constraints;renderConstraints()}
+    if(data.schedule&&data.schedule.success!==false&&data.schedule.schedule)
+      {currentSchedule=data.schedule;renderTimetable(data.schedule)}
+  }catch(e){hideTyping();addMsg('assistant','连接出错，请稍后再试～ 🐏');console.error(e)}
+}
+
+// ── Constraints ──
+function formatPrefLabel(k,v){
+  if(k==='no_morning') return '尽量不早八';
+  if(k==='preferred_building') return `上课地点偏好：${v}`;
+  if(k==='max_days') return `希望上课天数≤${v}`;
+  if(typeof v==='boolean') return `偏好：${k}=${v?'是':'否'}`;
+  return `偏好：${k}=${v}`;
+}
+function renderConstraints(){
+  const c=currentConstraints, dn=['','周一','周二','周三','周四','周五','周六','周日'];
+  const mh=document.getElementById('mustHaveTags');
+  mh.innerHTML=c.must_have&&c.must_have.length?c.must_have.map(i=>
+    `<span class="c-tag course">${i.course_name||i.course_id}<button class="remove" onclick="rmConstraint('course','${i.course_id}')">✕</button></span>`
+  ).join(''):'<span style="font-size:12px;color:var(--text3)">暂无</span>';
+  const fb=document.getElementById('forbiddenTags');
+  fb.innerHTML=c.forbidden_slots&&c.forbidden_slots.length?c.forbidden_slots.map(s=>
+    `<span class="c-tag forbidden">${dn[s.weekday]||'周?'} 第${s.period.join(',')}节<button class="remove" onclick="rmConstraint('forbidden',${s.weekday})">✕</button></span>`
+  ).join(''):'<span style="font-size:12px;color:var(--text3)">暂无</span>';
+  const pr=document.getElementById('prefTags');
+  const prefParts=[];
+  if(c.preferences&&Object.keys(c.preferences).length){
+    prefParts.push(...Object.entries(c.preferences).map(([k,v])=>
+      `<span class="c-tag pref">${formatPrefLabel(k,v)}<button class="remove" onclick="rmConstraint('pref','${k}')">✕</button></span>`
+    ));
+  }
+  if(c.section_constraints&&c.section_constraints.length){
+    prefParts.push(...c.section_constraints.map(r=>{
+      const mode=r.strict?'必须':'尽量';
+      const label=`老师锁定：${r.course_name||r.course_id} · ${mode}${r.teacher_contains||''}`;
+      return `<span class="c-tag pref">${label}<button class="remove" onclick="rmConstraint('section','${r.course_id}')">✕</button></span>`;
+    }));
+  }
+  pr.innerHTML=prefParts.length?prefParts.join(''):'<span style="font-size:12px;color:var(--text3)">暂无</span>';
+}
+async function rmConstraint(type,val){
+  if(!sessionId)return;
+  let action,data;
+  if(type==='course'){action='remove_course';data={course_id:val}}
+  else if(type==='pref'){action='remove_preference';data={key:val}}
+  else if(type==='section'){action='remove_section_constraint';data={course_id:val}}
+  else{action='remove_forbidden';data={weekday:val}}
+  const r=await fetch('/api/constraints/update',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({session_id:sessionId,action,data})});
+  const res=await r.json();
+  if(res.constraints){currentConstraints=res.constraints;renderConstraints()}
+  if(res.schedule&&res.schedule.success!==false&&res.schedule.schedule){currentSchedule=res.schedule;renderTimetable(res.schedule)}
+}
+
+// ── Timetable ──
+function getCourseColor(cid){if(!(cid in courseColorMap)){courseColorMap[cid]=colorIdx%8;colorIdx++}return courseColorMap[cid]}
+
+function renderTimetable(sd){
+  const conflicts=sd.conflict_log||[];
+  const tagMap={COMPACT:'课表更紧凑','高学分保障':'高学分保障'};
+  if(sd.solutions&&sd.solutions.length){
+    currentSolutions=sd.solutions; currentSolutionIndex=0;
+    renderSolutionSwitcher();
+    const sol=currentSolutions[currentSolutionIndex];
+    document.getElementById('scheduleTags').innerHTML=(sol.tags||[]).map(t=>`<span class="s-tag">${tagMap[t]||t}</span>`).join('');
+    renderTimetableCourses(sol.schedule||[],conflicts);
+    return;
+  }
+  currentSolutions=null; currentSolutionIndex=0;
+  document.getElementById('solutionSwitcher').innerHTML='';
+  const courses=sd.schedule||[],tags=sd.tags||[];
+  document.getElementById('scheduleTags').innerHTML=tags.map(t=>`<span class="s-tag">${tagMap[t]||t}</span>`).join('');
+  renderTimetableCourses(courses,conflicts);
+}
+
+function renderSolutionSwitcher(){
+  const el=document.getElementById('solutionSwitcher');
+  if(!currentSolutions||currentSolutions.length<=1){el.innerHTML='';return}
+  el.innerHTML=currentSolutions.map((s,i)=>`<span class="s-btn ${i===currentSolutionIndex?'active':''}" onclick="selectSolution(${i})">方案${i+1}</span>`).join('');
+}
+
+function selectSolution(i){
+  if(!currentSolutions||!currentSolutions[i])return;
+  currentSolutionIndex=i;
+  renderSolutionSwitcher();
+  const tagMap={COMPACT:'课表更紧凑','高学分保障':'高学分保障'};
+  const sol=currentSolutions[currentSolutionIndex];
+  document.getElementById('scheduleTags').innerHTML=(sol.tags||[]).map(t=>`<span class="s-tag">${tagMap[t]||t}</span>`).join('');
+  renderTimetableCourses(sol.schedule||[],(currentSchedule&&currentSchedule.conflict_log)||[]);
+}
+
+function renderTimetableCourses(courses,conflicts){
+  document.getElementById('statsBar').style.display='flex';
+  // #1: Period mapping: raw 1-12 → display 1-6, display_period = ceil(raw/2)
+  const toDisplay=p=>Math.ceil(p/2);
+  const timeLabels={1:'08:00-09:35',2:'09:55-11:30',3:'13:30-15:05',4:'15:25-17:00',5:'18:00-19:35',6:'19:55-21:30'};
+
+  let cm={},morningSlots=0,daysSet=new Set();
+  courses.forEach(c=>{
+    cm[c.course_id]=c.credits||0;
+    daysSet.add(c.weekday);
+    (c.period_list||[]).forEach(p=>{if(p<=2)morningSlots++}); // raw 1,2 = 早八
+  });
+  document.getElementById('statCredits').textContent=Object.values(cm).reduce((a,b)=>a+b,0);
+  document.getElementById('statDays').textContent=daysSet.size;
+  // morning count = number of unique (course, weekday) pairs that have any period<=2
+  let morningCourses=new Set();
+  courses.forEach(c=>{if((c.period_list||[]).some(p=>p<=2))morningCourses.add(c.course_id+'-'+c.weekday)});
+  document.getElementById('statMorning').textContent=morningCourses.size;
+  // Wednesday afternoon = raw period >= 7 (display >= 4)
+  document.getElementById('statWed').textContent=courses.some(c=>c.weekday===3&&(c.period_list||[]).some(p=>p>=7))?'❌':'✅';
+  document.getElementById('conflictArea').innerHTML=conflicts.map(c=>`<div class="conflict-box">⚡ ${c.description}</div>`).join('');
+
+  // Build grid using display periods
+  const grid={}; // "weekday-displayPeriod" -> course
+  courses.forEach(c=>{(c.period_list||[]).forEach(p=>{
+    const dp=toDisplay(p);
+    const key=`${c.weekday}-${dp}`;
+    if(!grid[key]) grid[key]=c; // first course wins per cell
+  })});
+
+  const days=['一','二','三','四','五'];
+  let h='<table class="timetable"><thead><tr><th style="width:30px"></th>';
+  days.forEach(d=>h+=`<th>周${d}</th>`);h+='</tr></thead><tbody>';
+  for(let dp=1;dp<=6;dp++){
+    h+=`<tr><td class="period-label" title="${timeLabels[dp]||''}">${dp}<br><span style="font-size:9px;color:var(--text3)">${(timeLabels[dp]||'').split('-')[0]}</span></td>`;
+    for(let w=1;w<=5;w++){
+      const c=grid[`${w}-${dp}`];
+      if(c){const ci=getCourseColor(c.course_id);
+        h+=`<td><div class="course-cell cc-${ci}" onclick="showCellMenu(event,'${c.course_id}','${esc(c.course_name)}')"><div class="cname">${c.course_name}</div><div class="cinfo">${c.teacher}<br>${c.location||''}</div></div></td>`}
+      else h+='<td></td>';
+    }h+='</tr>';
+  }
+  h+='</tbody></table>';
+  document.getElementById('timetableArea').innerHTML=h;
+}
+function esc(s){return s.replace(/'/g,"\\'").replace(/"/g,'&quot;')}
+
+// ── Cell Menu ──
+function showCellMenu(e,cid,cname){
+  e.stopPropagation();cellMenuCourse={id:cid,name:cname};
+  const m=document.getElementById('cellMenu');
+  m.style.left=Math.min(e.clientX,window.innerWidth-170)+'px';
+  m.style.top=Math.min(e.clientY,window.innerHeight-120)+'px';
+  m.classList.add('show');
+}
+document.addEventListener('click',()=>document.getElementById('cellMenu').classList.remove('show'));
+function cellAction(a){
+  document.getElementById('cellMenu').classList.remove('show');
+  if(!cellMenuCourse)return;
+  const n=cellMenuCourse.name;
+  if(a==='ref'){document.getElementById('chatInput').value=`关于"${n}"，`;document.getElementById('chatInput').focus()}
+  else if(a==='change'){document.getElementById('chatInput').value=`帮我把"${n}"换一个班级`;sendMsg()}
+  else if(a==='remove'){document.getElementById('chatInput').value=`帮我去掉"${n}"`;sendMsg()}
+}
+
+// ── Popup (#11, #12 fixed) ──
+function openPopup(){document.getElementById('courseOverlay').classList.add('show');document.getElementById('popupSearch').value='';document.getElementById('popupSearch').focus();searchPopup('')}
+function closePopup(){document.getElementById('courseOverlay').classList.remove('show')}
+function debouncedPopupSearch(){clearTimeout(popupTimer);popupTimer=setTimeout(()=>searchPopup(document.getElementById('popupSearch').value.trim()),300)}
+async function searchPopup(kw){
+  const r=await fetch(`/api/courses?keyword=${encodeURIComponent(kw)}&limit=30`);
+  const d=await r.json(),container=document.getElementById('popupResults');
+  if(!d.courses.length){container.innerHTML='<p style="text-align:center;color:var(--text3);padding:20px">未找到匹配课程</p>';return}
+  // #10: no capacity display
+  container.innerHTML=d.courses.map(c=>
+    `<div class="course-item" onclick="selectFromPopup('${c.course_id}','${esc(c.course_name)}')">
+      <div><div class="ci-name">${c.course_name}</div>
+      <div class="ci-meta">${c.course_id} · ${c.teacher} · ${c.credits}学分 · ${c.department}</div></div>
+    </div>`
+  ).join('');
+}
+// #12: Fix - properly send course to chat
+function selectFromPopup(cid,cname){
+  closePopup();
+  const input=document.getElementById('chatInput');
+  input.value=`我要选"${cname}"`;
+  // Directly send instead of just filling input
+  sendMsg();
+}
+
+// ── Session ──
+async function resetSession(){
+  if(sessionId)await fetch('/api/session/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sessionId})});
+  currentSchedule=null;currentConstraints={must_have:[],forbidden_slots:[],preferences:{}};
+  currentSolutions=null; currentSolutionIndex=0;
+  courseColorMap={};colorIdx=0;renderConstraints();
+  document.getElementById('timetableArea').innerHTML='<div class="empty-state"><div class="icon">📅</div><p>在左侧对话中描述选课需求</p></div>';
+  document.getElementById('statsBar').style.display='none';
+  document.getElementById('solutionSwitcher').innerHTML='';
+  document.getElementById('scheduleTags').innerHTML='';
+  document.getElementById('conflictArea').innerHTML='';
+  document.getElementById('chatArea').innerHTML='';
+  addSystemMsg('对话已重置 🐏');
+  sendToAgent('你好');
+}
+</script>
+</body>
+</html>

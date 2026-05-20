@@ -1,0 +1,29 @@
+# Environment & Secrets
+.env
+
+# Database
+*.db
+*.sqlite
+
+# Raw data (large source files)
+data/raw_courses.jsonl
+
+# Generated output
+output/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Packaging
+*.zip
+*.tar.gz
+*.egg-info/
+dist/
+build/
+
+# System files
+.DS_Store
+Thumbs.db
