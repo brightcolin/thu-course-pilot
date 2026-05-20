@@ -1,4 +1,8 @@
-# THU Course Pilot
+# 问道未央 🐏
+
+### THU Course Pilot · 清荷 Studio
+
+> 🏆 第三届"未央城"智能体大赛 · 创意赛道二等奖
 
 清华大学智能选课助手。通过自然语言对话，AI Agent 自动完成课程搜索、时间约束提取、冲突检测与课表生成。
 
@@ -66,3 +70,12 @@ Agent 会自动识别课程名称（支持别名，如"高数"→"微积分A"）
 | `LLM_MODEL` | 模型名，默认 `deepseek-chat` |
 
 详见 `.env.example`。
+
+## 关于本项目
+
+本项目由 **清荷 Studio** 团队共同开发完成。
+
+🏆 第三届"未央城"智能体大赛 · 创意赛道二等奖
+
+**团队成员：**  
+[@brightcolin](https://github.com/brightcolin) · [@YangAn8800](https://github.com/YangAn8800) · [@sayankk](https://github.com/sayankk) · [@rainlanelongings-cmd](https://github.com/rainlanelongings-cmd)
