@@ -712,7 +712,13 @@ def execute_tool(tool_name: str, arguments: dict, session_state: dict) -> str:
             context_bundles = fetch_course_context(sm.requirements["must_have"])
             if not context_bundles:
                 return json.dumps({"conflicts": [], "message": "未找到课程数据。"}, ensure_ascii=False)
-            conflicts = solver.detect_conflicts(context_bundles)
+            # 从当前课表提取已选班级，使冲突检测结果与实际课表一致
+            selected_section_ids = {
+                item["course_id"]: item["section_id"]
+                for item in (session_state.get("last_solution_details") or [])
+                if item.get("course_id") and item.get("section_id")
+            }
+            conflicts = solver.detect_conflicts(context_bundles, selected_section_ids=selected_section_ids)
             if not conflicts:
                 return json.dumps({"conflicts": [], "message": "当前所选课程之间没有时间冲突。"}, ensure_ascii=False)
             return json.dumps({
@@ -859,7 +865,7 @@ def run_agent(user_message: str, session_state: dict) -> dict:
     import copy
     _tools_plain = json.loads(json.dumps(TOOLS))
 
-    for iteration in range(8):
+    for iteration in range(15):
         try:
             response = client.chat.completions.create(
                 model=MODEL, messages=messages, tools=_tools_plain, temperature=0.7,

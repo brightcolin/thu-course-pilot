@@ -145,9 +145,11 @@ class CourseScheduler:
             
         return []
 
-    def detect_conflicts(self, context_bundles=None):
+    def detect_conflicts(self, context_bundles=None, selected_section_ids=None):
         """
         检测所有已选课程之间的时间冲突对。
+        selected_section_ids: {course_id: section_id}，优先使用当前课表中已选的班级；
+                              未提供时回退到第一个非黑名单班级。
         返回 [{"courses": [cid_a, cid_b], "names": [name_a, name_b],
                 "weekday": w, "periods": [...], "description": "..."}]
         """
@@ -156,23 +158,42 @@ class CourseScheduler:
             if not context_bundles:
                 return []
 
-        # 为每门课找到它所有可能的时间位点（取第一个可用 section 作为代表）
+        selected = selected_section_ids or {}
         course_slots = []  # [(cid, cname, [(weekday, period_set)])]
         for b in context_bundles:
             cid = b["course_id"]
             cname = b["course_name"]
-            # 取第一个非黑名单的 section
-            for sec in b.get("sections", []):
-                if any(idx in self.blacklist for idx in sec.get("row_indices", [])):
-                    continue
-                slots = []
-                for ts in sec.get("time_slots", []):
-                    w = self._normalize_weekday(ts.get("weekday"))
-                    if w:
-                        slots.append((w, set(ts.get("period_list", []))))
-                if slots:
-                    course_slots.append((cid, cname, slots))
+            sections = b.get("sections", [])
+
+            # 优先使用当前课表中已选的班级
+            picked = None
+            target_sid = selected.get(cid)
+            if target_sid is not None:
+                picked = next(
+                    (s for s in sections
+                     if str(s.get("section_id")) == str(target_sid)
+                     and not any(idx in self.blacklist for idx in s.get("row_indices", []))),
+                    None,
+                )
+
+            # 回退：取第一个非黑名单班级
+            if picked is None:
+                for sec in sections:
+                    if any(idx in self.blacklist for idx in sec.get("row_indices", [])):
+                        continue
+                    picked = sec
                     break
+
+            if picked is None:
+                continue
+
+            slots = []
+            for ts in picked.get("time_slots", []):
+                w = self._normalize_weekday(ts.get("weekday"))
+                if w:
+                    slots.append((w, set(ts.get("period_list", []))))
+            if slots:
+                course_slots.append((cid, cname, slots))
 
         day_names = ["", "周一", "周二", "周三", "周四", "周五", "周六", "周日"]
         conflicts = []
