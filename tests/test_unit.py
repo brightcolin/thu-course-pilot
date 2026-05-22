@@ -89,6 +89,35 @@ class TestScheduler:
         assert isinstance(res, list)
         assert any(c["type"] == "SECTION_FILTER_RELAXED" for c in sm.conflict_log)
 
+    def test_phase2_constraint_relaxation(self):
+        # 00000051 has exactly one section at weekday=2 periods=[11,12].
+        # Forbidding that slot forces phase 1 to fail; phase 2 must recover.
+        from session_manager import SessionManager
+        from scheduler import CourseScheduler
+        sm = SessionManager("s_p2")
+        sm.update_requirements({
+            "must_have": ["00000051"],
+            "forbidden_slots": [{"weekday": 2, "period": [11, 12]}],
+        })
+        result = CourseScheduler(sm).solve(1)
+        assert len(result) > 0, "phase 2 should produce a solution by relaxing constraints"
+        assert any(c["type"] == "CONSTRAINT_RELAXED" for c in sm.conflict_log)
+
+    def test_phase3_greedy_drop(self):
+        # 00000051 and 00000152 both have a single section at weekday=2 periods=[11,12].
+        # They always conflict, so phases 1 and 2 both fail; phase 3 drops the lower-
+        # priority course and returns a partial solution.
+        from session_manager import SessionManager
+        from scheduler import CourseScheduler
+        sm = SessionManager("s_p3")
+        sm.update_requirements({"must_have": ["00000051", "00000152"]})
+        result = CourseScheduler(sm).solve(1)
+        assert len(result) > 0, "phase 3 should return a partial solution"
+        details = result[0]["details"]
+        scheduled_ids = {item["course_id"] for item in details}
+        assert len(scheduled_ids) == 1, "exactly one course should survive the conflict"
+        assert any(c["type"] == "PARTIAL_SOLVE_SUMMARY" for c in sm.conflict_log)
+
 class TestToolExecution:
     def _sess(self):
         from session_manager import SessionManager

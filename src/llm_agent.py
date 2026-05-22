@@ -650,6 +650,13 @@ def execute_tool(tool_name: str, arguments: dict, session_state: dict) -> str:
                 old_rows = current.get("row_indices") or []
                 if old_rows:
                     sm.update_requirements({"blacklist_indices": [int(i) for i in old_rows if isinstance(i, (int, float, str))]})
+                # persist teacher preference so re-solve ("换一个方案") honours it
+                teacher_pref = _normalize(arguments.get('teacher_contains'))
+                if teacher_pref:
+                    sm.update_requirements({'section_constraints': {
+                        cid: {'teacher_contains': teacher_pref, 'strict': False}
+                    }})
+
 
                 next_details = []
                 for item in last_details:
@@ -687,6 +694,13 @@ def execute_tool(tool_name: str, arguments: dict, session_state: dict) -> str:
             old_rows = current.get("row_indices") or []
             if old_rows:
                 sm.update_requirements({"blacklist_indices": [int(i) for i in old_rows if isinstance(i, (int, float, str))]})
+            # persist teacher preference so re-solve honours it
+            teacher_pref = _normalize(arguments.get('teacher_contains'))
+            if teacher_pref:
+                sm.update_requirements({'section_constraints': {
+                    cid: {'teacher_contains': teacher_pref, 'strict': False}
+                }})
+
             solver = CourseScheduler(sm)
             analyzed = solver.solve(max_solutions=3)
             if not analyzed:
