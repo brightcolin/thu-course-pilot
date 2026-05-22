@@ -282,28 +282,72 @@ async def health():
 
 @app.get("/api/courses")
 async def get_courses(keyword: str = "", limit: int = 50):
-    """课程搜索（弹窗用）— 不显示余量(#10)"""
+    """课程搜索（弹窗用）"""
     import sqlite3
     keyword = ALIAS_MAP.get(keyword, keyword)
-    conn = sqlite3.connect(DB_NAME); conn.row_factory = sqlite3.Row; cur = conn.cursor()
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
     if keyword:
         like = f"%{keyword}%"
-        cur.execute('SELECT "课程号","课程名","教师名1","学分","开课单位" FROM course_details WHERE "课程号" LIKE ? OR "课程名" LIKE ? OR "教师名1" LIKE ? GROUP BY "课程号" LIMIT ?', (like,like,like,limit))
+        cur.execute(
+            'SELECT "课程号","课程名","教师名1","学分","开课单位"'
+            ' FROM course_details'
+            ' WHERE "课程号" LIKE ? OR "课程名" LIKE ? OR "教师名1" LIKE ?'
+            ' GROUP BY "课程号" LIMIT ?',
+            (like, like, like, limit),
+        )
     else:
-        cur.execute('SELECT "课程号","课程名","教师名1","学分","开课单位" FROM course_details GROUP BY "课程号" LIMIT ?', (limit,))
-    rows = cur.fetchall(); conn.close()
-    return {"courses": [{"course_id":r["课程号"],"course_name":r["课程名"],"teacher":r["教师名1"] or "","credits":r["学分"] or 0,"department":r["开课单位"] or ""} for r in rows]}
+        cur.execute(
+            'SELECT "课程号","课程名","教师名1","学分","开课单位"'
+            ' FROM course_details GROUP BY "课程号" LIMIT ?',
+            (limit,),
+        )
+    rows = cur.fetchall()
+    conn.close()
+    return {
+        "courses": [
+            {
+                "course_id": r["课程号"],
+                "course_name": r["课程名"],
+                "teacher": r["教师名1"] or "",
+                "credits": r["学分"] or 0,
+                "department": r["开课单位"] or "",
+            }
+            for r in rows
+        ]
+    }
 
 @app.get("/api/course_detail/{course_id}")
 async def course_detail(course_id: str):
     bundles = fetch_course_context([course_id])
-    if not bundles: return {"found": False}
-    b = bundles[0]; dn = ["","周一","周二","周三","周四","周五","周六","周日"]
+    if not bundles:
+        return {"found": False}
+    b = bundles[0]
+    dn = ["", "周一", "周二", "周三", "周四", "周五", "周六", "周日"]
     secs = []
-    for sec in b.get("sections",[]):
-        ts_out = [{"weekday":ts["weekday"],"day":dn[ts["weekday"]] if 1<=ts["weekday"]<=7 else f"周{ts['weekday']}","period_list":ts["period_list"]} for ts in sec.get("time_slots",[])]
-        secs.append({"section_id":sec["section_id"],"teacher":sec["teacher"],"location":sec["location"],"time_slots":ts_out,"credits":sec.get("credits",0)})
-    return {"found":True,"course_id":b["course_id"],"course_name":b["course_name"],"sections":secs}
+    for sec in b.get("sections", []):
+        ts_out = [
+            {
+                "weekday": ts["weekday"],
+                "day": dn[ts["weekday"]] if 1 <= ts["weekday"] <= 7 else f"周{ts['weekday']}",
+                "period_list": ts["period_list"],
+            }
+            for ts in sec.get("time_slots", [])
+        ]
+        secs.append({
+            "section_id": sec["section_id"],
+            "teacher": sec["teacher"],
+            "location": sec["location"],
+            "time_slots": ts_out,
+            "credits": sec.get("credits", 0),
+        })
+    return {
+        "found": True,
+        "course_id": b["course_id"],
+        "course_name": b["course_name"],
+        "sections": secs,
+    }
 
 @app.post("/api/chat")
 async def chat(req: ChatRequest):

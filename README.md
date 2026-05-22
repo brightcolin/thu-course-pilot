@@ -34,13 +34,25 @@ pip install -r requirements.txt
 cp .env.example .env
 # 编辑 .env，填入 LLM_API_KEY
 
-# 3. 初始化数据库（需要 data/raw_courses.jsonl，可跳过如已有 scheduler.db）
-python init_db.py
+# 3. 准备数据库（二选一，见下方说明）
+python init_db.py   # 方式 A：从原始数据生成
+# 或直接将 scheduler.db 放到项目根目录  # 方式 B：使用预构建数据库
 
 # 4. 启动
 python main.py
 # 访问 http://localhost:8000
 ```
+
+### 关于数据库
+
+本项目使用 SQLite 数据库（`scheduler.db`），包含清华大学 18,000+ 门课程的时间、教师、地点等信息。
+
+**为什么没有上传到仓库：** 原始数据文件 `data/raw_courses.jsonl`（约 60 MB）和生成的数据库文件均因体积过大而加入了 `.gitignore`。
+
+**如何获取：**
+
+- **方式 A（推荐）：** 联系项目团队获取预构建的 `scheduler.db`，直接放到项目根目录即可运行，无需其他步骤。
+- **方式 B：** 获取原始数据文件 `data/raw_courses.jsonl`，放到 `data/` 目录后运行 `python init_db.py` 生成数据库（同时需要 `output/position_slot_map.json`，也可向团队索取）。
 
 ## 运行测试
 

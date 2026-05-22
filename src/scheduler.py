@@ -57,7 +57,7 @@ class CourseScheduler:
             w = self._normalize_weekday(fs["weekday"])
             if w is None:
                 continue
-            mask = periods_to_bitmask(fs["period"])
+            mask = periods_to_bitmask(fs.get("period", []))
             masks[w] |= mask
         return masks
 

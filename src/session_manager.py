@@ -61,12 +61,14 @@ class SessionManager:
                 for i, existing in enumerate(self.requirements["forbidden_slots"]):
                     if existing["weekday"] == ns["weekday"]:
                         # 合并 period 列表并去重
-                        combined = list(set(existing["period"] + ns["period"]))
+                        combined = list(set(existing.get("period", []) + ns.get("period", [])))
                         self.requirements["forbidden_slots"][i]["period"] = sorted(combined)
                         found = True
                         break
                 if not found:
-                    self.requirements["forbidden_slots"].append(ns)
+                    self.requirements["forbidden_slots"].append(
+                        {"weekday": ns["weekday"], "period": ns.get("period", [])}
+                    )
 
         # 3. 合并软约束
         if "preferences" in parsed_json:

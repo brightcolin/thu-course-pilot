@@ -1,15 +1,6 @@
 """
 LLM Agent：基于 OpenAI Function Calling 的工具调用 Agent
 角色：未小羊 🐏 —— 清华大学未央书院吉祥物
-
-修复清单:
- #2  API 切换至 DeepSeek
- #3  冲突定义：所选课程之间的时间冲突
- #4  多任务理解：一句话提取多门课+多约束
- #5  响应速度：简单指令直接执行不过 LLM
- #7  软约束识别增强
- #9  约束识别准确性：few-shot 示例
- #10 余量不过滤，仅排序
 """
 import os, json, traceback
 from openai import OpenAI
@@ -785,7 +776,7 @@ def execute_tool(tool_name: str, arguments: dict, session_state: dict) -> str:
         return json.dumps({"error": f"工具执行出错: {str(e)}"}, ensure_ascii=False)
 
 
-# ─── 快捷指令检测（#5 响应速度） ───
+# ─── 快捷指令检测 ───
 SHORTCUT_PATTERNS = {
     "换一个方案": "solve",
     "重新排课": "solve",
@@ -844,7 +835,7 @@ def run_agent(user_message: str, session_state: dict) -> dict:
         except Exception:
             pass
 
-    # #3: 多轮对话记忆优化 — 保留最近12条完整消息，更早的压缩为摘要
+    # 保留最近12条完整消息，更早的压缩为摘要
     RECENT_KEEP = 12
     if len(history) > RECENT_KEEP:
         older = history[:-RECENT_KEEP]
