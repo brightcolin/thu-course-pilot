@@ -572,3 +572,126 @@ class TestGeneralQA:
         assert "非选课" in SYSTEM_PROMPT or "闲聊" in SYSTEM_PROMPT
         assert "未小羊" in SYSTEM_PROMPT
 
+
+# ═══ Coverage improvement: period_list_to_clock_range, export/load state, availability ═══
+
+class TestPeriodClockRange:
+    """data_adapter.period_list_to_clock_range — pure function, uses explicit map"""
+
+    def test_full_label(self):
+        from data_adapter import period_list_to_clock_range
+        fake_map = {1: {"start": "08:00", "end": "09:35", "label": "上午"}}
+        assert period_list_to_clock_range([1, 2], fake_map) == "08:00-09:35(上午)"
+
+    def test_start_end_no_label(self):
+        from data_adapter import period_list_to_clock_range
+        fake_map = {2: {"start": "09:50", "end": "11:25"}}
+        assert period_list_to_clock_range([3, 4], fake_map) == "09:50-11:25"
+
+    def test_label_only(self):
+        from data_adapter import period_list_to_clock_range
+        fake_map = {1: {"label": "早上"}}
+        assert period_list_to_clock_range([1], fake_map) == "早上"
+
+    def test_empty_list_returns_none(self):
+        from data_adapter import period_list_to_clock_range
+        assert period_list_to_clock_range([]) is None
+
+    def test_invalid_period_returns_none(self):
+        from data_adapter import period_list_to_clock_range
+        assert period_list_to_clock_range([None]) is None
+
+    def test_block_not_in_map_returns_none(self):
+        from data_adapter import period_list_to_clock_range
+        assert period_list_to_clock_range([1, 2], {}) is None
+
+    def test_uses_real_time_slots_file(self):
+        from data_adapter import period_list_to_clock_range
+        result = period_list_to_clock_range([1, 2])
+        assert result is not None  # time_slots.json must have block 1
+
+
+class TestSessionStateIO:
+    """session_manager export_state / load_state and edge branches"""
+
+    def test_export_load_roundtrip(self):
+        from session_manager import SessionManager
+        sm = SessionManager("io1")
+        sm.update_requirements({"must_have": ["00000051"], "preferences": {"no_morning": True}})
+        sm.store_top_solutions([[1, 2, 3], [4, 5, 6]])
+        state = sm.export_state()
+        sm2 = SessionManager("other")
+        sm2.load_state(state)
+        assert sm2.session_id == "io1"
+        assert "00000051" in sm2.requirements["must_have"]
+        assert sm2.solutions == sm.solutions
+
+    def test_export_to_file(self, tmp_path):
+        from session_manager import SessionManager
+        import json as _json
+        sm = SessionManager("io2")
+        sm.update_requirements({"must_have": ["00000051"]})
+        fp = str(tmp_path / "state.json")
+        sm.export_state(file_path=fp)
+        assert os.path.exists(fp)
+        with open(fp, encoding="utf-8") as f:
+            loaded = _json.load(f)
+        assert loaded["session_id"] == "io2"
+        assert "00000051" in loaded["requirements"]["must_have"]
+
+    def test_section_constraints_invalid_cid_skipped(self):
+        from session_manager import SessionManager
+        sm = SessionManager("io3")
+        sm.update_requirements({"section_constraints": {123: {"teacher_contains": "张", "strict": True}}})
+        assert sm.requirements["section_constraints"] == {}
+
+    def test_section_constraints_empty_cid_skipped(self):
+        from session_manager import SessionManager
+        sm = SessionManager("io3b")
+        sm.update_requirements({"section_constraints": {"": {"teacher_contains": "张", "strict": True}}})
+        assert sm.requirements["section_constraints"] == {}
+
+    def test_section_constraints_invalid_rule_skipped(self):
+        from session_manager import SessionManager
+        sm = SessionManager("io4")
+        sm.update_requirements({"section_constraints": {"00000051": "bad_rule"}})
+        assert sm.requirements["section_constraints"] == {}
+
+    def test_remove_section_constraints(self):
+        from session_manager import SessionManager
+        sm = SessionManager("io5")
+        sm.update_requirements({"section_constraints": {"00000051": {"teacher_contains": "张", "strict": True}}})
+        assert "00000051" in sm.requirements["section_constraints"]
+        sm.update_requirements({"remove_section_constraints": ["00000051"]})
+        assert "00000051" not in sm.requirements["section_constraints"]
+
+    def test_sort_must_have_empty_guard(self):
+        from session_manager import SessionManager
+        sm = SessionManager("io6")
+        sm.update_requirements({"must_have": []})
+        assert sm.requirements["must_have"] == []
+
+
+class TestVerifyAvailability:
+    """data_adapter.verify_realtime_availability"""
+
+    def test_empty_list_returns_empty(self):
+        from data_adapter import verify_realtime_availability
+        assert verify_realtime_availability([]) == []
+
+    def test_real_indices_structure(self):
+        from data_adapter import verify_realtime_availability, fetch_course_context
+        bundles = fetch_course_context(["00000051"])
+        if not bundles or not bundles[0]["sections"]:
+            pytest.skip("No DB data for 00000051")
+        indices = bundles[0]["sections"][0]["row_indices"][:2]
+        results = verify_realtime_availability(indices)
+        assert len(results) > 0
+        for r in results:
+            assert "row_index" in r
+            assert "course_id" in r
+            assert "section_id" in r
+            assert "remains" in r
+            assert "is_available" in r
+            assert isinstance(r["is_available"], bool)
+
