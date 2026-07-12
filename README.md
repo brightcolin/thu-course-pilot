@@ -1,5 +1,14 @@
 # 问道未央 🐏
 
+[简体中文](README.md) | [English](README_EN.md)
+
+![获奖](https://img.shields.io/badge/Award-Second%20Prize-gold)
+![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
+![测试](https://img.shields.io/badge/Tests-97%20passed-brightgreen)
+![FastAPI](https://img.shields.io/badge/Framework-FastAPI-009688?logo=fastapi&logoColor=white)
+![数据](https://img.shields.io/badge/Data-Virtual%20Demo%20Only-blue)
+![许可证](https://img.shields.io/badge/License-No%20Open--Source%20License-lightgrey)
+
 ### THU Course Pilot · 清荷 Studio
 
 > 🏆 第三届“未央城”智能体大赛 · 创意赛道二等奖
