@@ -25,7 +25,7 @@ body{font-family:'Noto Sans SC',-apple-system,sans-serif;background:var(--bg);co
 /* ── Login ── */
 #loginOverlay{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#e8ecf8,#f5f7fb 50%,#e8faf4);display:flex;align-items:center;justify-content:center}
 .login-card{background:var(--white);border-radius:var(--rl);box-shadow:var(--shadow-lg);padding:44px 40px;width:400px;text-align:center}
-.login-card .mascot{width:90px;height:90px;border-radius:50%;margin-bottom:14px;object-fit:cover;background:#fff;border:3px solid var(--pri-l)}
+.login-card .emoji-avatar{width:90px;height:90px;border-radius:50%;margin:0 auto 14px;background:#fff;border:3px solid var(--pri-l);display:flex;align-items:center;justify-content:center;font-size:48px;line-height:1}
 .login-card h2{font-size:21px;font-weight:600;margin-bottom:4px}
 .login-card p{color:var(--text2);font-size:14px;margin-bottom:22px}
 .login-card input{width:100%;padding:11px 15px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:14px;font-family:inherit;outline:none;margin-bottom:10px;transition:border .2s}
@@ -36,7 +36,7 @@ body{font-family:'Noto Sans SC',-apple-system,sans-serif;background:var(--bg);co
 /* ── Header ── */
 .header{height:54px;background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 22px;box-shadow:0 1px 3px rgba(0,0,0,.03)}
 .header-left{display:flex;align-items:center;gap:9px}
-.header-left .mascot{width:30px;height:30px;border-radius:50%;object-fit:cover;background:#fff}
+.header-left .emoji-avatar{width:30px;height:30px;border-radius:50%;background:var(--pri-l);display:inline-flex;align-items:center;justify-content:center;font-size:20px;line-height:1}
 .header-left h1{font-size:16px;font-weight:600}
 .header-left h1 span{color:var(--pri)}
 .header-right{display:flex;align-items:center;gap:10px}
@@ -58,7 +58,7 @@ body{font-family:'Noto Sans SC',-apple-system,sans-serif;background:var(--bg);co
 @keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 .msg.user{align-self:flex-end;background:var(--pri);color:#fff;border-bottom-right-radius:4px}
 .msg.assistant{align-self:flex-start;background:var(--surface2);border:1px solid var(--border);border-bottom-left-radius:4px}
-.msg .avatar{width:22px;height:22px;border-radius:50%;vertical-align:middle;margin-right:5px;object-fit:cover;background:#fff}
+.msg .avatar{width:22px;height:22px;border-radius:50%;vertical-align:middle;margin-right:5px;background:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:16px;line-height:1}
 .msg.system{align-self:center;background:var(--pri-l);color:var(--pri);font-size:13px;padding:7px 15px;border-radius:20px}
 .typing-indicator{align-self:flex-start;padding:11px 18px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);display:flex;gap:4px;align-items:center}
 .dot{width:6px;height:6px;background:var(--text3);border-radius:50%;animation:bounce 1.2s infinite}
@@ -155,7 +155,7 @@ body{font-family:'Noto Sans SC',-apple-system,sans-serif;background:var(--bg);co
 <!-- Login -->
 <div id="loginOverlay">
   <div class="login-card">
-    <img class="mascot" src="/static/mascot.png" alt="未小羊">
+    <span class="emoji-avatar" role="img" aria-label="小羊头像">🐏</span>
     <h2>欢迎来到选课系统</h2>
     <p>我是未小羊 🐏，你的专属选课助手</p>
     <input id="loginName" placeholder="请输入你的名字" onkeydown="if(event.key==='Enter')doLogin()">
@@ -168,7 +168,7 @@ body{font-family:'Noto Sans SC',-apple-system,sans-serif;background:var(--bg);co
 <!-- Header -->
 <div class="header">
   <div class="header-left">
-    <img class="mascot" src="/static/mascot.png" alt="🐏">
+    <span class="emoji-avatar" role="img" aria-label="小羊头像">🐏</span>
     <h1><span>未小羊</span> · 智能选课系统</h1>
   </div>
   <div class="header-right">
@@ -255,7 +255,7 @@ function addMsg(role,text){
   el.className='msg '+role;
   if(role==='assistant'){
     // #6: render simple formatting (no raw markdown)
-    el.innerHTML='<img class="avatar" src="/static/mascot.png">'+formatReply(text);
+    el.innerHTML='<span class="avatar" aria-hidden="true">🐏</span>'+formatReply(text);
   } else { el.textContent=text; }
   area.appendChild(el); area.scrollTop=area.scrollHeight;
 }
@@ -266,7 +266,7 @@ function addSystemMsg(t){
 function showTyping(){
   const area=document.getElementById('chatArea'),el=document.createElement('div');
   el.className='typing-indicator';el.id='typingIndicator';
-  el.innerHTML='<img class="avatar" src="/static/mascot.png" style="width:20px;height:20px;margin-right:3px;background:#fff"><div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+  el.innerHTML='<span class="avatar" aria-hidden="true">🐏</span><div class="dot"></div><div class="dot"></div><div class="dot"></div>';
   area.appendChild(el);area.scrollTop=area.scrollHeight;
 }
 function hideTyping(){const el=document.getElementById('typingIndicator');if(el)el.remove()}

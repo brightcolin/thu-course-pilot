@@ -11,6 +11,10 @@ data/raw_courses.jsonl
 # Generated output
 output/
 
+# Private project reports
+报告.docx
+问道未央项目报告.pdf
+
 # Python cache
 __pycache__/
 *.pyc
