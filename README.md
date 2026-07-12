@@ -2,92 +2,123 @@
 
 ### THU Course Pilot · 清荷 Studio
 
-> 🏆 第三届"未央城"智能体大赛 · 创意赛道二等奖
+> 🏆 第三届“未央城”智能体大赛 · 创意赛道二等奖
 
-清华大学智能选课助手。通过自然语言对话，AI Agent 自动完成课程搜索、时间约束提取、冲突检测与课表生成。
+“问道未央”是一个面向高校选课场景的 AI 排课助手。用户可以通过自然语言提出课程需求、禁用时间和偏好条件，系统自动完成课程搜索、约束提取、冲突检测与课表生成。
+
+> **项目状态：** 本仓库是比赛作品归档，当前不提供线上服务，也没有继续产品化或公开部署的计划。代码保留用于成果展示与技术交流。
+
+## 作品展示
+
+![问道未央智能选课与排课界面](docs/images/schedule-demo.jpg)
+
+截图使用虚拟演示数据，教师和地点等信息已做模糊处理。
+
+## 核心能力
+
+- 使用自然语言添加、删除和查询课程。
+- 识别“不要早八”“周三下午有空”等时间约束。
+- 支持教师、地点和课程时段等班级偏好。
+- 检测课程冲突，并由用户决定保留或移除的课程。
+- 生成多套候选课表，并展示学分、上课天数和早课数量。
+- 通过快捷指令重新排课或清空当前选择。
 
 ## 系统架构
 
-```
-FastAPI (main.py)
-  └─ LLM Agent (src/llm_agent.py)      # Function Calling，8 个工具
-       └─ Session Manager               # 会话状态、约束合并
-            └─ Scheduler (3-phase)      # 完美匹配 → 约束松弛 → 贪心舍弃
-                 └─ Data Adapter        # 课程搜索、位图冲突检测
-                      └─ SQLite DB      # 18,000+ 门课程
+```text
+FastAPI API（main.py）
+  └─ LLM Agent（src/llm_agent.py）
+       ├─ Session Manager（会话状态与约束合并）
+       ├─ Scheduler（三阶段排课求解）
+       ├─ Data Adapter（课程检索与位图冲突检测）
+       └─ SQLite（虚拟演示课程数据）
 ```
 
-前端为单页应用（`static/index.html`），含对话区、周课表视图和约束面板。
+前端为原生 HTML、CSS 和 JavaScript 实现的单页应用，集中在 `static/index.html`。
 
 ## 环境要求
 
-- Python 3.8+
-- [DeepSeek](https://platform.deepseek.com/) 或 [Moonshot](https://platform.moonshot.cn/) API Key
+- Python 3.10+
+- DeepSeek、Moonshot 或其他兼容 OpenAI SDK 的模型接口
+- 本地虚拟演示数据库 `scheduler.db`
 
-## 快速开始
+## 数据说明
 
-```bash
-# 1. 安装依赖
-pip install -r requirements.txt
+本项目比赛期间使用的真实课程数据不属于本仓库的公开内容，也不会上传到 GitHub。
 
-# 2. 配置 API Key
-cp .env.example .env
-# 编辑 .env，填入 LLM_API_KEY
+开发和演示使用本地准备的虚拟数据库。`scheduler.db`、原始课程文件 `data/raw_courses.jsonl` 和中间产物 `output/position_slot_map.json` 均已通过 `.gitignore` 排除，不应提交真实课程数据或包含个人信息的数据。
 
-# 3. 准备数据库（二选一，见下方说明）
-python init_db.py   # 方式 A：从原始数据生成
-# 或直接将 scheduler.db 放到项目根目录  # 方式 B：使用预构建数据库
+如需从自有、已获授权的数据初始化数据库，需要准备：
+
+- `data/raw_courses.jsonl`
+- `output/position_slot_map.json`
+- 可选的 `data/curriculum.json`
+
+随后运行 `python init_db.py`。仓库中的截图仅用于展示系统效果，不能用于还原真实课程信息。
+
+## 本地运行
+
+在已准备好虚拟 `scheduler.db` 的前提下：
+
+```powershell
+# 1. 创建并激活虚拟环境（Windows PowerShell）
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+# 2. 安装锁定依赖
+python -m pip install -r requirements-lock.txt
+
+# 3. 配置模型接口
+Copy-Item .env.example .env
+# 编辑 .env，填入自己的 LLM_API_KEY
 
 # 4. 启动
 python main.py
-# 访问 http://localhost:8000
+# 浏览器访问 http://localhost:8000
 ```
 
-### 关于数据库
+不要提交 `.env`，也不要在公开 Issue、日志或截图中暴露 API Key。
 
-本项目使用 SQLite 数据库（`scheduler.db`），包含清华大学 18,000+ 门课程的时间、教师、地点等信息。
+## 测试
 
-**为什么没有上传到仓库：** 原始数据文件 `data/raw_courses.jsonl`（约 60 MB）和生成的数据库文件均因体积过大而加入了 `.gitignore`。
+```powershell
+python -m pytest tests/ -q
 
-**如何获取：**
-
-- **方式 A（推荐）：** 联系项目团队获取预构建的 `scheduler.db`，直接放到项目根目录即可运行，无需其他步骤。
-- **方式 B：** 获取原始数据文件 `data/raw_courses.jsonl`，放到 `data/` 目录后运行 `python init_db.py` 生成数据库（同时需要 `output/position_slot_map.json`，也可向团队索取）。
-
-## 运行测试
-
-```bash
-python -m pytest tests/ -v
-# 或单独运行某类测试：
-python -m pytest tests/test_unit.py -v -k "scheduler"
+# 运行指定类别
+python -m pytest tests/test_unit.py -q -k "scheduler"
 ```
+
+截至 2026-07-12，当前基线为 97 个测试全部通过。测试覆盖课程搜索、会话状态、三阶段排课、Agent 工具、快捷指令、冲突检测和 API 场景；默认测试不会调用真实 LLM 接口。
 
 ## 对话示例
 
-```
-你：我要选面向对象程序设计基础，不想上早八
-你：帮我换一个面向对象基础的班级
+```text
+你：帮我选微积分A、英语阅读写作、基础物理学、一年级男生体育，尽量不要早八
+你：帮我换一个微积分A的班级
 你：换一个方案
 你：清空，重新来
 ```
 
-Agent 会自动识别课程名称（支持别名，如"高数"→"微积分A"）、提取时间禁止条件（"早八"= 第 1-2 节），调用排课引擎生成无冲突课表。
-
-## 配置说明
+## 模型配置
 
 | 变量 | 说明 |
 |---|---|
-| `LLM_API_KEY` | API 密钥（必填） |
-| `LLM_BASE_URL` | 接口地址，默认 `https://api.deepseek.com` |
-| `LLM_MODEL` | 模型名，默认 `deepseek-chat` |
+| `LLM_API_KEY` | 模型接口密钥 |
+| `LLM_BASE_URL` | 兼容接口地址，默认 `https://api.deepseek.com` |
+| `LLM_MODEL` | 模型名称，默认 `deepseek-chat` |
 
-详见 `.env.example`。
+配置示例见 `.env.example`。
 
-## 关于本项目
+## 团队
 
 本项目由 **清荷 Studio** 团队共同开发完成。
 
-🏆 第三届"未央城"智能体大赛 · 创意赛道二等奖
-
-**团队成员：**  
 [@brightcolin](https://github.com/brightcolin) · [@YangAn8800](https://github.com/YangAn8800) · [@sayankk](https://github.com/sayankk) · [@rainlanelongings-cmd](https://github.com/rainlanelongings-cmd)
+
+## 版权说明
+
+本项目是团队共同创作的比赛作品，项目名称、代码、文档和视觉素材的相关权益由其各自权利人依法享有。
+
+本仓库目前**未附开放源代码许可证**。公开可见不代表授予复制、修改、再发布或商业使用的许可。若需引用、展示或基于本项目进行二次开发，请事先取得项目团队及相关权利人的许可，并保留原项目与团队署名。
+
+第三方平台、模型、学校和赛事名称及标识的权利归各自权利人所有。
